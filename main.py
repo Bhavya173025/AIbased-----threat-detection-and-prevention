@@ -30,7 +30,7 @@ authenticator = stauth.Authenticate(
 # --------------------------
 # LOGIN PAGE TITLE
 # --------------------------
-st.title("**Sentinel-Auth**")
+st.title("Sentinel-Auth")
 
 # --------------------------
 # LOGIN FORM

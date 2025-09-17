@@ -4,7 +4,7 @@ import streamlit_authenticator as stauth
 import requests
 
 # Debug: Show loaded secrets for verification (remove in production)
-st.write("Secrets loaded:", st.secrets)
+st.write("Secrets loaded:", dict(st.secrets))
 
 # --------------------------
 # HASHED PASSWORDS
@@ -24,7 +24,7 @@ authenticator = stauth.Authenticate(
     credentials,
     "threat_app",
     "abcdef",
-    cookie_expiry_days=1
+    cookie_expiry_days=1,
 )
 
 # --------------------------
@@ -42,10 +42,8 @@ if authentication_status:
     authenticator.logout("Logout", "sidebar")
 
     section = st.sidebar.radio("Select Section", ["Wikipedia Chatbot", "Security Tools"])
-
     if section == "Wikipedia Chatbot":
         st.title("📚 Wikipedia Chatbot")
-
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
@@ -68,7 +66,6 @@ if authentication_status:
             st.session_state.messages.append({"role": "user", "content": user_input})
             bot_response = get_wikipedia_summary(user_input)
             st.session_state.messages.append({"role": "bot", "content": bot_response})
-
         for msg in st.session_state.messages:
             if msg["role"] == "user":
                 st.markdown(f"**You:** {msg['content']}")
@@ -78,8 +75,12 @@ if authentication_status:
     elif section == "Security Tools":
         st.title("🛡️ AI Threat Detection and Prevention")
         st.write("Check if a URL is safe using Google Safe Browsing API.")
-
-        api_key = st.secrets["GOOGLE_SAFE_BROWSING_API_KEY"]
+        
+        try:
+            api_key = st.secrets["GOOGLE_SAFE_BROWSING_API_KEY"]
+        except KeyError:
+            st.error("API key not found in secrets. Please add it in your secrets.toml or Streamlit Cloud Secrets.")
+            st.stop()
 
         def check_url_safety(url):
             endpoint = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
@@ -101,4 +102,35 @@ if authentication_status:
                 }
             }
             params = {"key": api_key}
-            response = requests.post(endpoint, params=params, json
+            response = requests.post(endpoint, params=params, json=body)
+            if response.status_code == 200:
+                result = response.json()
+                if "matches" in result:
+                    return False, result["matches"]
+                else:
+                    return True, None
+            else:
+                return None, f"API Error: {response.status_code}"
+
+        url_input = st.text_input("Enter URL to check:")
+
+        if st.button("Check URL"):
+            if not url_input:
+                st.error("Please enter a URL.")
+            elif not (url_input.startswith("http://") or url_input.startswith("https://")):
+                st.error("URL must start with http:// or https://")
+            else:
+                safe, details = check_url_safety(url_input)
+                if safe is None:
+                    st.error(details)
+                elif safe:
+                    st.success("✅ This URL is safe.")
+                else:
+                    st.error("⚠️ This URL is unsafe!")
+                    st.json(details)
+
+else:
+    if authentication_status is False:
+        st.error("❌ Username/password is incorrect")
+    elif authentication_status is None:
+        st.warning("ℹ️ Please enter your username and password")

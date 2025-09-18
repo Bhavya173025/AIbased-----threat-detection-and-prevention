@@ -4,7 +4,7 @@ import streamlit_authenticator as stauth
 import requests
 
 # Debug: Show loaded secrets for verification (remove in production)
-st.write("Secrets loaded:", dict(st.confidential))
+st.write("Secrets loaded:", dict(st.secrets))
 
 # --------------------------
 # HASHED PASSWORDS
@@ -36,12 +36,11 @@ st.title("🌐Sentinel-Auth")
 # LOGIN FORM
 # --------------------------
 name, authentication_status, username = authenticator.login(fields={"form_name": "Login"}, location="main")
-
 if authentication_status:
     st.sidebar.success(f"✅ Welcome {name}")
     authenticator.logout("Logout", "sidebar")
-
     section = st.sidebar.radio("Select Section", ["Wikipedia Chatbot", "Security Tools"])
+
     if section == "Wikipedia Chatbot":
         st.title("📚 Wikipedia Chatbot")
         if "messages" not in st.session_state:
@@ -75,11 +74,11 @@ if authentication_status:
     elif section == "Security Tools":
         st.title("🛡️ AI Threat Detection and Prevention")
         st.write("Check if a URL is safe using Google Safe Browsing API.")
-        
+
         try:
-            api_key = st.confidential["GOOGLE_SAFE_BROWSING_API_KEY"]
+            api_key = st.secrets["GOOGLE_SAFE_BROWSING_API_KEY"]
         except KeyError:
-            st.error("API key not found in confidential. Please add it in your confidential.toml or Streamlit Cloud Secrets.")
+            st.error("API key not found in secrets. Please add it in your secrets.toml or Streamlit Cloud Secrets.")
             st.stop()
 
         def check_url_safety(url):
@@ -113,7 +112,6 @@ if authentication_status:
                 return None, f"API Error: {response.status_code}"
 
         url_input = st.text_input("Enter URL to check:")
-
         if st.button("Check URL"):
             if not url_input:
                 st.error("Please enter a URL.")
